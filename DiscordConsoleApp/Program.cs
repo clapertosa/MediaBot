@@ -23,6 +23,7 @@ namespace DiscordConsoleApp
                     var configuration = new ConfigurationBuilder()
                         .SetBasePath(Directory.GetCurrentDirectory())
                         .AddJsonFile("config.json", true, true)
+                        .AddEnvironmentVariables()
                         .Build();
 
                     x.AddConfiguration(configuration);
@@ -43,7 +44,7 @@ namespace DiscordConsoleApp
                         MessageCacheSize = 200,
                     };
 
-                    config.Token = context.Configuration["token"];
+                    config.Token = context.Configuration["Tokens:Discord"];
                 })
                 .UseCommandService((context, config) =>
                 {

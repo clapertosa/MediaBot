@@ -1,27 +1,28 @@
-﻿using System;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Application.Interfaces.Repositories;
 using Discord;
 using Discord.Commands;
 using Domain.Entities;
+using Microsoft.Extensions.Configuration;
 
 namespace DiscordConsoleApp.Commands
 {
     public class ImdbCommands : ModuleBase
     {
         private readonly IImdbRepository _imdbRepository;
+        private readonly IConfiguration _configuration;
 
-        public ImdbCommands(IImdbRepository imdbRepository)
+        public ImdbCommands(IImdbRepository imdbRepository, IConfiguration configuration)
         {
             _imdbRepository = imdbRepository;
+            _configuration = configuration;
         }
 
         [Command(CommandType.Commands)]
         [Alias(CommandType.Help)]
         public async Task CommandsList()
         {
-            await ReplyAsync("ecco la lista dei comanid");
+            await ReplyAsync("Commands list:");
         }
 
         [Command(CommandType.Search)]
@@ -43,11 +44,11 @@ namespace DiscordConsoleApp.Commands
                     await msg.AddReactionAsync(new Emoji(EmojiUnicode.Confirm));
                     await msg.AddReactionAsync(new Emoji(EmojiUnicode.Heart));
                 }
-            } else if (media.Count == 1)
+            }
+            else if (media.Count == 1)
             {
                 // return all the media info
             }
         }
-        
     }
 }
