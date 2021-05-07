@@ -40,7 +40,8 @@ namespace DiscordConsoleApp.Commands
                     embeded.ThumbnailUrl = m.PosterPath;
                     embeded.Url = m.Url;
                     var msg = await ReplyAsync("", false, embeded.Build());
-                    var reaction = msg.AddReactionAsync(new Emoji("✅"));
+                    await msg.AddReactionAsync(new Emoji(EmojiUnicode.Confirm));
+                    await msg.AddReactionAsync(new Emoji(EmojiUnicode.Heart));
                 }
             } else if (media.Count == 1)
             {

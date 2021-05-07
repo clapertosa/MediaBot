@@ -22,7 +22,7 @@ namespace DiscordConsoleApp
                 {
                     var configuration = new ConfigurationBuilder()
                         .SetBasePath(Directory.GetCurrentDirectory())
-                        .AddJsonFile("config.json", false, true)
+                        .AddJsonFile("config.json", true, true)
                         .Build();
 
                     x.AddConfiguration(configuration);

@@ -71,14 +71,14 @@ namespace Infrastructure.Services
 
         private Media ParseMediaPage(HtmlNode htmlNode, string url)
         {
-            double.TryParse(htmlNode.SelectSingleNode(ImdbPaths.Vote).InnerText, NumberStyles.Float,
+            double.TryParse(htmlNode.SelectSingleNode(ImdbPaths.Vote)?.InnerText, NumberStyles.Float,
                 CultureInfo.InvariantCulture, out double rating);
 
             Media media = new Media
             {
                 Id = GetId(url),
-                Title = htmlNode.SelectSingleNode(ImdbPaths.TitleBlockContainerTitle).InnerText,
-                Plot = WebUtility.HtmlDecode(htmlNode.SelectSingleNode(ImdbPaths.Plot).FirstChild.InnerText),
+                Title = htmlNode.SelectSingleNode(ImdbPaths.TitleBlockContainerTitle)?.InnerText,
+                Plot = WebUtility.HtmlDecode(htmlNode.SelectSingleNode(ImdbPaths.Plot)?.FirstChild.InnerText),
                 PosterPath =
                     GetPosterOriginalSize(htmlNode.SelectSingleNode(ImdbPaths.Poster)?.Attributes["src"].Value),
                 Director = new Director
@@ -87,13 +87,11 @@ namespace Infrastructure.Services
                     Url =
                         $"{_imdbMediaUrl}{htmlNode.SelectSingleNode(ImdbPaths.DirectorAnchor)?.Attributes["href"].Value}"
                 },
-                ReleaseDate = htmlNode.SelectSingleNode(ImdbPaths.ReleaseDate).InnerText,
+                ReleaseDate = htmlNode.SelectSingleNode(ImdbPaths.ReleaseDate)?.InnerText,
                 Url = url,
                 Vote = rating,
-                VotesNumber = htmlNode.SelectSingleNode(ImdbPaths.VotesNumber).InnerText,
+                VotesNumber = htmlNode.SelectSingleNode(ImdbPaths.VotesNumber)?.InnerText,
             };
-
-            Console.WriteLine(media.PosterPath);
 
             // Genres
             foreach (var genre in htmlNode.SelectNodes(ImdbPaths.Genres))

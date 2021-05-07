@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,12 +7,12 @@ using Discord;
 using Discord.Addons.Hosting;
 using Discord.Commands;
 using Discord.WebSocket;
-using Domain.Entities;
+using DiscordConsoleApp.Commands;
 using Microsoft.Extensions.Configuration;
 
 namespace DiscordConsoleApp.Services
 {
-    public class CommandHandler : InitializedService
+    public partial class CommandHandler : InitializedService
     {
         private readonly IServiceProvider _provider;
         private readonly DiscordSocketClient _client;
@@ -71,29 +70,23 @@ namespace DiscordConsoleApp.Services
             SocketReaction emoteSocket)
         {
             var msg = await channelSocket.GetMessageAsync(emoteSocket.MessageId);
-            // Emote must be a check
-            if (emoteSocket.Emote.Name != "✅") return;
-            // If reaction added by bot, return
-            if (emoteSocket.UserId == _client.CurrentUser.Id) return;
-            foreach (var msgEmbed in msg.Embeds)
-            {
-                Media media = await _imdbRepository.GetMedia(msgEmbed.Url);
-                EmbedBuilder embedBuilder = new EmbedBuilder
-                {
-                    Title = media.Title,
-                    Description = media.Plot,
-                    ThumbnailUrl = media.PosterPath,
-                    Url = media.Url
-                };
-                embedBuilder.AddField("Meta", string.Join(", ", media.MetaData));
-                embedBuilder.AddField("Genres", string.Join(", ", media.Genres));
-                embedBuilder.AddField("Director", $"[{media.Director?.FullName?? "-"}]({media?.Director?.Url??""})");
-                embedBuilder.AddField("Actors",
-                    string.Join(", ", media.Actors.Select(x => $"[{x.FullName}]({x.Url})")));
-                embedBuilder.AddField("Vote", $"{media.Vote}/10 ({media.VotesNumber})");
-                embedBuilder.AddField("Release date", media.ReleaseDate);
 
-                await channelSocket.SendMessageAsync(embed: embedBuilder.Build());
+            // If message is not by bot or reaction added by bot
+            if (!msg.Author.IsBot || emoteSocket.UserId == _client.CurrentUser.Id) return;
+
+            // var users = await msg.GetReactionUsersAsync(new Emoji("✅"), Int32.MaxValue).FlattenAsync();
+            switch (emoteSocket.Emote.Name)
+            {
+                case EmojiUnicode.Confirm:
+                    EmbedBuilder embedBuilder = await SendMedia(msg);
+                    await channelSocket.SendMessageAsync(embed: embedBuilder.Build());
+                    break;
+                case EmojiUnicode.Heart:
+                    SocketUser user = _client.GetUser(emoteSocket.UserId);
+                    string answer = await SaveMedia(msg, user);
+                    await channelSocket.SendMessageAsync(answer);
+                    break;
+                default: return;
             }
         }
 
