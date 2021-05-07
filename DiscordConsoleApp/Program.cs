@@ -21,7 +21,6 @@ namespace DiscordConsoleApp
                 .ConfigureAppConfiguration(x =>
                 {
                     var configuration = new ConfigurationBuilder()
-                        .SetBasePath(Directory.GetCurrentDirectory())
                         .AddJsonFile("config.json", true, true)
                         .AddEnvironmentVariables()
                         .Build();
