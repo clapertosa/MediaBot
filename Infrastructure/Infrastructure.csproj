@@ -18,6 +18,9 @@
     <None Update="SQL\StoredProcedures\GetUserMedia.sql">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="SQL\StoredProcedures\RemoveMedia.sql">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <PropertyGroup>
