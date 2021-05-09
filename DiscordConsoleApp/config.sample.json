@@ -1,5 +1,8 @@
 ﻿{
   "prefix": "!",
+  "Databases": {
+    "DiscordConnectionString": ""
+  },
   "Tokens": {
     "Discord": ""
   }

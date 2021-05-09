@@ -1,4 +1,8 @@
-﻿using System.Linq;
+﻿using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Data.SqlClient;
+using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
@@ -35,9 +39,57 @@ namespace DiscordConsoleApp.Services
 
         private async Task<string> SaveMedia(IMessage msg, SocketUser user)
         {
-            // do operations
+            var firstOrDefault = msg.Embeds.FirstOrDefault();
 
-            return $"{user.Mention} saved or not";
+            string storedProcedure = "SP_AddMedia";
+            await using var sqlConnection =
+                new SqlConnection(_config["Databases:DiscordConnectionString"] + "discord_imdbot");
+            await using var sqlCommand = new SqlCommand(storedProcedure, sqlConnection)
+                {CommandType = CommandType.StoredProcedure};
+
+            List<SqlParameter> parameters = new List<SqlParameter>()
+            {
+                new SqlParameter("@UserId", SqlDbType.BigInt) {Value = user.Id},
+                new SqlParameter("@MediaId", SqlDbType.VarChar)
+                {
+                    Value = firstOrDefault?.Url.Substring(
+                        firstOrDefault.Url.LastIndexOf("/", StringComparison.Ordinal) + 1)
+                },
+                new SqlParameter("@MediaTitle", SqlDbType.NVarChar) {Value = firstOrDefault?.Title},
+                new SqlParameter("@MediaPosterPath", SqlDbType.VarChar)
+                    {Value = firstOrDefault?.Thumbnail.Value.Url ?? firstOrDefault?.Image.Value.Url ?? ""}
+            };
+            sqlCommand.Parameters.AddRange(parameters.ToArray());
+            await sqlConnection.OpenAsync();
+            await sqlCommand.ExecuteNonQueryAsync();
+
+            return $"{user.Mention} {firstOrDefault?.Title} Added";
+        }
+
+        private async Task<string> RemoveMedia(IMessage msg, SocketUser user)
+        {
+            var firstOrDefault = msg.Embeds.FirstOrDefault();
+
+            string storedProcedure = "SP_RemoveMedia";
+            await using var sqlConnection =
+                new SqlConnection(_config["Databases:DiscordConnectionString"] + "discord_imdbot");
+            await using var sqlCommand = new SqlCommand(storedProcedure, sqlConnection)
+                {CommandType = CommandType.StoredProcedure};
+
+            List<SqlParameter> parameters = new List<SqlParameter>()
+            {
+                new SqlParameter("@UserId", SqlDbType.BigInt) {Value = user.Id},
+                new SqlParameter("@MediaId", SqlDbType.VarChar)
+                {
+                    Value = firstOrDefault?.Url.Substring(
+                        firstOrDefault.Url.LastIndexOf("/", StringComparison.Ordinal) + 1)
+                }
+            };
+            sqlCommand.Parameters.AddRange(parameters.ToArray());
+            await sqlConnection.OpenAsync();
+            await sqlCommand.ExecuteNonQueryAsync();
+
+            return $"{user.Mention} {firstOrDefault?.Title} removed";
         }
     }
 }

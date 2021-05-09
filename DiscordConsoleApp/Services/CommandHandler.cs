@@ -34,6 +34,7 @@ namespace DiscordConsoleApp.Services
         {
             _client.MessageReceived += OnMessageReceived;
             _client.ReactionAdded += OnReactionAdded;
+            _client.ReactionRemoved += OnReactionRemoved;
             _service.CommandExecuted += OnCommandExecuted;
 
             await _service.AddModulesAsync(Assembly.GetEntryAssembly(), _provider);
@@ -79,11 +80,28 @@ namespace DiscordConsoleApp.Services
             {
                 case EmojiUnicode.Confirm:
                     EmbedBuilder embedBuilder = await SendMedia(msg);
-                    await channelSocket.SendMessageAsync(embed: embedBuilder.Build());
+                    var mediaMsg = await channelSocket.SendMessageAsync(embed: embedBuilder.Build());
+                    await mediaMsg.AddReactionAsync(new Emoji(EmojiUnicode.Heart));
                     break;
                 case EmojiUnicode.Heart:
                     SocketUser user = _client.GetUser(emoteSocket.UserId);
                     string answer = await SaveMedia(msg, user);
+                    await channelSocket.SendMessageAsync(answer);
+                    break;
+                default: return;
+            }
+        }
+
+        private async Task OnReactionRemoved(Cacheable<IUserMessage, ulong> arg1, ISocketMessageChannel channelSocket,
+            SocketReaction emoteSocket)
+        {
+            var msg = await channelSocket.GetMessageAsync(emoteSocket.MessageId);
+
+            switch (emoteSocket.Emote.Name)
+            {
+                case EmojiUnicode.Heart:
+                    SocketUser user = _client.GetUser(emoteSocket.UserId);
+                    string answer = await RemoveMedia(msg, user);
                     await channelSocket.SendMessageAsync(answer);
                     break;
                 default: return;

@@ -1,4 +1,7 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Data.SqlClient;
+using System.IO;
+using System.Threading.Tasks;
 using Discord;
 using Discord.Addons.Hosting;
 using Discord.Commands;
@@ -14,6 +17,44 @@ namespace DiscordConsoleApp
 {
     class Program
     {
+        private const string DatabaseName = "discord_imdbot";
+        private static void InitializeDatabase(IConfiguration configuration)
+        {
+            var connString = configuration["Databases:DiscordConnectionString"] ;
+            var cmdText = "select count(*) from master.dbo.sysdatabases where name=@database";
+
+            using var sqlConnection = new SqlConnection(connString);
+            sqlConnection.Open();
+            
+            using var sqlCheckDatabaseCmd = new SqlCommand(cmdText, sqlConnection);
+            sqlCheckDatabaseCmd.Parameters.Add("@database", System.Data.SqlDbType.NVarChar).Value = DatabaseName;
+            
+            // If database does not exist
+            if (Convert.ToInt32(sqlCheckDatabaseCmd.ExecuteScalar()) == 0)
+            {
+                string sqlCreateDbText = "CREATE DATABASE [discord_imdbot]";
+                using SqlCommand sqlCreateDb = new SqlCommand(sqlCreateDbText, sqlConnection);
+                sqlCreateDb.ExecuteNonQuery();
+                sqlConnection.ChangeDatabase(DatabaseName);
+                // Create Tables
+                string sqlCmdText = File.ReadAllText("./SQL/Queries/InitializeDB.sql");
+                using SqlCommand sqlCmds = new SqlCommand(sqlCmdText, sqlConnection);
+                sqlCmds.ExecuteNonQuery();
+                // AddMedia Store Procedure
+                string sqlAddMedia = File.ReadAllText("./SQL/StoredProcedures/AddMedia.sql");
+                using SqlCommand sqlCmdAddMedia = new SqlCommand(sqlAddMedia, sqlConnection);
+                sqlCmdAddMedia.ExecuteNonQuery();
+                // RemoveMedia Store Procedure
+                string sqlRemoveMedia = File.ReadAllText("./SQL/StoredProcedures/RemoveMedia.sql");
+                using SqlCommand sqlCmdRemoveMedia = new SqlCommand(sqlRemoveMedia, sqlConnection);
+                sqlCmdRemoveMedia.ExecuteNonQuery();
+                // Get User Media
+                string sqlGetUserMediaSp = File.ReadAllText("./SQL/StoredProcedures/GetUserMedia.sql");
+                using SqlCommand sqlCmdGetUserMediaSp = new SqlCommand(sqlGetUserMediaSp, sqlConnection);
+                sqlCmdGetUserMediaSp.ExecuteNonQuery();
+            }
+        }
+        
         static async Task Main()
         {
             var builder = new HostBuilder()
@@ -34,6 +75,8 @@ namespace DiscordConsoleApp
                 })
                 .ConfigureDiscordHost<DiscordSocketClient>((context, config) =>
                 {
+                    InitializeDatabase(context.Configuration);
+                    
                     config.SocketConfig = new DiscordSocketConfig
                     {
                         LogLevel = LogSeverity

@@ -5,5 +5,6 @@
         public const string Commands = "imdb";
         public const string Help = "imdb-help";
         public const string Search = "imdb-search";
+        public const string GetUserMedia = "imdb-favorites";
     }
 }

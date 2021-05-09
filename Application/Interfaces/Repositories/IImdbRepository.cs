@@ -8,5 +8,6 @@ namespace Application.Interfaces.Repositories
     {
         Task<List<Media>> Search(string title);
         Task<Media> GetMedia(string url);
+        Task<List<Media>> GetUserMedia(ulong userId, string connectionString);
     }
 }
