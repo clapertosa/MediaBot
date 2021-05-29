@@ -78,7 +78,7 @@ namespace Infrastructure.Services
             {
                 Id = GetId(url),
                 Title = htmlNode.SelectSingleNode(ImdbPaths.TitleBlockContainerTitle)?.InnerText,
-                Plot = WebUtility.HtmlDecode(htmlNode.SelectSingleNode(ImdbPaths.Plot)?.FirstChild.InnerText),
+                Plot = WebUtility.HtmlDecode(htmlNode.SelectSingleNode(ImdbPaths.Plot)?.FirstChild?.InnerText),
                 PosterPath =
                     GetPosterOriginalSize(htmlNode.SelectSingleNode(ImdbPaths.Poster)?.Attributes["src"].Value),
                 Director = new Director
@@ -101,9 +101,10 @@ namespace Infrastructure.Services
 
             // Actors
             var nodes = htmlNode.SelectNodes(ImdbPaths.ActorNamesAnchor);
-            for (short i = 0; i < 5; i++)
+            int actorsIndex = nodes.Count > 5 ? 5 : nodes.Count;
+            for (int i = 0; i < actorsIndex; i++)
             {
-                string actorFullName = nodes[i].InnerText;
+                string actorFullName = nodes[i]?.InnerText;
                 string actorUrl = $"{_imdbMediaUrl}{nodes[i].Attributes["href"].Value}";
                 media.Actors.Add(new Actor {FullName = actorFullName, Url = actorUrl});
             }
