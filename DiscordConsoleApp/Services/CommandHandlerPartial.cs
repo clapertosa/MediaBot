@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Data.SqlClient;
 using System.Linq;
 using System.Threading.Tasks;
+using Dapper;
 using Discord;
 using Discord.WebSocket;
 using Domain.Entities;
@@ -14,10 +12,10 @@ namespace DiscordConsoleApp.Services
     {
         private async Task<EmbedBuilder> SendMedia(IMessage msg)
         {
-            EmbedBuilder embedBuilder = new EmbedBuilder();
+            var embedBuilder = new EmbedBuilder();
             foreach (var msgEmbed in msg.Embeds)
             {
-                Media media = await _imdbRepository.GetMedia(msgEmbed.Url);
+                var media = await _imdbRepository.GetMedia(msgEmbed.Url);
                 embedBuilder = new EmbedBuilder
                 {
                     Title = media.Title,
@@ -37,59 +35,95 @@ namespace DiscordConsoleApp.Services
             return embedBuilder;
         }
 
+        private async Task<User> GetUser(ulong userDiscordId)
+        {
+            var sqlGetUserQuery = "SELECT * FROM \"user\" AS U WHERE U.discord_id = @UserDiscordId";
+            return await _connection.QueryFirstOrDefaultAsync<User>(sqlGetUserQuery,
+                new {UserDiscordId = (long) userDiscordId});
+        }
+
+        private async Task<Media> GetMedia(IEmbed embed)
+        {
+            var mediaId = embed?.Url.Substring(
+                embed.Url.LastIndexOf("/", StringComparison.Ordinal) + 1);
+            var sqlGetMediaQuery = "SELECT * FROM media AS M WHERE M.imdb_id = @ImdbId";
+            return await _connection.QueryFirstOrDefaultAsync<Media>(sqlGetMediaQuery,
+                new
+                {
+                    ImdbId = mediaId
+                });
+        }
+
         private async Task<string> SaveMedia(IMessage msg, SocketUser user)
         {
-            var firstOrDefault = msg.Embeds.FirstOrDefault();
+            var embed = msg.Embeds.FirstOrDefault();
 
-            string storedProcedure = "SP_AddMedia";
-            await using var sqlConnection =
-                new SqlConnection(_config["Databases:DiscordConnectionString"] + "discord_imdbot");
-            await using var sqlCommand = new SqlCommand(storedProcedure, sqlConnection)
-                {CommandType = CommandType.StoredProcedure};
+            var userRecord = await GetUser(user.Id);
 
-            List<SqlParameter> parameters = new List<SqlParameter>()
+            // Check if user exists
+            if (userRecord == null)
             {
-                new SqlParameter("@UserId", SqlDbType.BigInt) {Value = user.Id},
-                new SqlParameter("@MediaId", SqlDbType.VarChar)
-                {
-                    Value = firstOrDefault?.Url.Substring(
-                        firstOrDefault.Url.LastIndexOf("/", StringComparison.Ordinal) + 1)
-                },
-                new SqlParameter("@MediaTitle", SqlDbType.NVarChar) {Value = firstOrDefault?.Title},
-                new SqlParameter("@MediaPosterPath", SqlDbType.VarChar)
-                    {Value = firstOrDefault?.Thumbnail.Value.Url ?? firstOrDefault?.Image.Value.Url ?? ""}
-            };
-            sqlCommand.Parameters.AddRange(parameters.ToArray());
-            await sqlConnection.OpenAsync();
-            await sqlCommand.ExecuteNonQueryAsync();
+                var sqlInsertUserQuery =
+                    "INSERT INTO \"user\"(discord_id, username, discriminator, is_bot, public_flags) VALUES(@DiscordId, @Username, @Discriminator, @IsBot, @PublicFlags) RETURNING *";
+                userRecord = await _connection.QueryFirstAsync<User>(sqlInsertUserQuery, new
+                    {
+                        DiscordId = (long) user.Id,
+                        user.Username,
+                        user.Discriminator,
+                        user.IsBot,
+                        user.PublicFlags
+                    }
+                );
+            }
 
-            return $"{user.Mention} {firstOrDefault?.Title} Added";
+            // Check if media exists
+            var mediaRecord = await GetMedia(embed);
+
+            if (mediaRecord == null)
+            {
+                var sqlInsertMediaQuery =
+                    "INSERT INTO media(imdb_id, title, poster_path) VALUES(@MediaId, @Title, @PosterPath) RETURNING *";
+                mediaRecord = await _connection.QueryFirstAsync<Media>(sqlInsertMediaQuery, new
+                {
+                    MediaId = embed?.Url.Substring(
+                        embed.Url.LastIndexOf("/", StringComparison.Ordinal) + 1),
+                    embed?.Title,
+                    PosterPath = embed?.Thumbnail.Value.Url ?? embed?.Image.Value.Url ?? ""
+                });
+            }
+
+            // Check if user already has media
+            var sqlCountUserMediaQuery =
+                "SELECT COUNT(*) FROM user_media WHERE user_id = @UserId AND media_id = @MediaId";
+            var mediaAlreadySaved = await _connection.QueryFirstAsync<int>(sqlCountUserMediaQuery, new
+            {
+                UserId = userRecord.Id,
+                MediaId = mediaRecord.Id
+            }) > 0;
+
+            if (!mediaAlreadySaved)
+            {
+                var sqlInsertMediaUserQuery = "INSERT INTO user_media(user_id, media_id) VALUES(@UserId, @MediaId)";
+                await _connection.ExecuteAsync(sqlInsertMediaUserQuery,
+                    new {UserId = userRecord.Id, MediaId = mediaRecord.Id});
+            }
+
+            return $"{user.Mention} {embed?.Title} Added";
         }
 
         private async Task<string> RemoveMedia(IMessage msg, SocketUser user)
         {
-            var firstOrDefault = msg.Embeds.FirstOrDefault();
+            var embed = msg.Embeds.FirstOrDefault();
 
-            string storedProcedure = "SP_RemoveMedia";
-            await using var sqlConnection =
-                new SqlConnection(_config["Databases:DiscordConnectionString"] + "discord_imdbot");
-            await using var sqlCommand = new SqlCommand(storedProcedure, sqlConnection)
-                {CommandType = CommandType.StoredProcedure};
+            var userRecord = await GetUser(user.Id);
+            var mediaRecord = await GetMedia(embed);
 
-            List<SqlParameter> parameters = new List<SqlParameter>()
-            {
-                new SqlParameter("@UserId", SqlDbType.BigInt) {Value = user.Id},
-                new SqlParameter("@MediaId", SqlDbType.VarChar)
-                {
-                    Value = firstOrDefault?.Url.Substring(
-                        firstOrDefault.Url.LastIndexOf("/", StringComparison.Ordinal) + 1)
-                }
-            };
-            sqlCommand.Parameters.AddRange(parameters.ToArray());
-            await sqlConnection.OpenAsync();
-            await sqlCommand.ExecuteNonQueryAsync();
+            var sqlRemoveUserMediaQuery = "DELETE FROM user_media WHERE user_id = @UserId AND media_id = @MediaId";
+            if (userRecord != null && mediaRecord != null)
+                await _connection.ExecuteAsync(sqlRemoveUserMediaQuery,
+                    new {UserId = (long) userRecord.Id, MediaId = mediaRecord.Id});
 
-            return $"{user.Mention} {firstOrDefault?.Title} removed";
+            return $"{user.Mention} {embed?.Title} removed";
         }
     }
 }

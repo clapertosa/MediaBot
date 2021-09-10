@@ -1,9 +1,10 @@
 ﻿{
   "prefix": "!",
-  "Databases": {
-    "DiscordConnectionString": ""
-  },
-  "Tokens": {
-    "Discord": ""
+  "DATABASE_URL": "DATABASE_URL",
+  "Token": "Token",
+  "IMDB": {
+    "URI": "https://www.imdb.com/",
+    "SearchAPI": "Search_API",
+    "GraphQLEndpoint": "GraphQLEndpoint"
   }
 }

@@ -1,22 +1,18 @@
-﻿using System.Collections.Generic;
+﻿using System.Linq;
 using System.Threading.Tasks;
 using Application.Interfaces.Repositories;
 using Discord;
 using Discord.Commands;
-using Domain.Entities;
-using Microsoft.Extensions.Configuration;
 
 namespace DiscordConsoleApp.Commands
 {
     public class ImdbCommands : ModuleBase
     {
         private readonly IImdbRepository _imdbRepository;
-        private readonly IConfiguration _configuration;
 
-        public ImdbCommands(IImdbRepository imdbRepository, IConfiguration configuration)
+        public ImdbCommands(IImdbRepository imdbRepository)
         {
             _imdbRepository = imdbRepository;
-            _configuration = configuration;
         }
 
         [Command(CommandType.Commands)]
@@ -31,20 +27,20 @@ namespace DiscordConsoleApp.Commands
         [Command(CommandType.Search)]
         public async Task Search([Remainder] string title)
         {
-            var media = await _imdbRepository.Search(title);
-            if (media.Count <= 0) await ReplyAsync("No results found.");
+            var media = (await _imdbRepository.Search(title)).ToList();
+            if (!media.Any()) await ReplyAsync("No results found.");
 
-            if (media.Count > 0)
+            if (media.Any())
             {
-                EmbedBuilder embeded = new EmbedBuilder();
+                var embedded = new EmbedBuilder();
                 await ReplyAsync("Please select one:");
-                int limit = media.Count > 3 ? 3 : media.Count;
+                var limit = media.Count > 3 ? 3 : media.Count;
                 for (short i = 0; i < limit; i++)
                 {
-                    embeded.Title = media[i].Title;
-                    embeded.ThumbnailUrl = media[i].PosterPath;
-                    embeded.Url = media[i].Url;
-                    var msg = await ReplyAsync("", false, embeded.Build());
+                    embedded.Title = media[i].Title;
+                    embedded.ThumbnailUrl = media[i].PosterPath;
+                    embedded.Url = media[i].Url;
+                    var msg = await ReplyAsync("", false, embedded.Build());
                     await msg.AddReactionsAsync(new IEmote[]
                         {new Emoji(EmojiUnicode.Confirm), new Emoji(EmojiUnicode.Heart)});
                 }
@@ -54,14 +50,13 @@ namespace DiscordConsoleApp.Commands
         [Command(CommandType.GetUserMedia)]
         public async Task GetUserMedia()
         {
-            List<Media> media =
-                await _imdbRepository.GetUserMedia(Context.User.Id,
-                    _configuration["Databases:DiscordConnectionString"]);
+            var media =
+                await _imdbRepository.GetUserMedia(Context.User);
 
             await ReplyAsync($"{Context.User.Mention} Favorites");
-            foreach (Media m in media)
+            foreach (var m in media)
             {
-                EmbedBuilder embedBuilder = new EmbedBuilder();
+                var embedBuilder = new EmbedBuilder();
                 embedBuilder.Title = m.Title;
                 embedBuilder.Url = m.Url;
                 embedBuilder.ThumbnailUrl = m.PosterPath;

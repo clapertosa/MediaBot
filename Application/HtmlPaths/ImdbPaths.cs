@@ -4,10 +4,15 @@
     {
         // Search
         public const string FindListTitlesHeader = "//a[@name='tt']";
+
         public const string FindListTable = "//table[@class='findList']";
+
         // Media
         public const string TitleBlockContainerTitle = "//h1[contains(@class, 'TitleHeader__TitleText')]";
-        public const string TitleBlockContainerMetaDataList = "//div[contains(@class, 'TitleBlock__TitleContainer')]//li"; // First child
+
+        public const string TitleBlockContainerMetaDataList =
+            "//div[contains(@class, 'TitleBlock__TitleContainer')]//li"; // First child
+
         public const string Plot = "//div[contains(@class, 'GenresAndPlot__TextContainer')]";
         public const string Poster = "//div[contains(@class, 'ipc-poster')]//img";
         public const string Genres = "//a[contains(@class, 'GenresAndPlot__Genre')]//span";

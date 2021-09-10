@@ -1,29 +1,61 @@
 ﻿using System.Collections.Generic;
 using System.Data;
-using System.Data.SqlClient;
+using System.Net.Http;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Application.Interfaces.Repositories;
 using Application.Interfaces.Services;
+using Dapper;
+using Discord;
+using Domain.Configurations;
 using Domain.Entities;
+using Domain.Entities.Imdb;
+using Microsoft.Extensions.Configuration;
 
 namespace Infrastructure.Repositories
 {
     public class ImdbRepository : IImdbRepository
     {
+        private readonly HttpClient _client;
+        private readonly IDbConnection _connection;
         private readonly IHtmlUtils _htmlUtils;
-        private readonly string _imdbUrl = "https://www.imdb.com/title/";
-        private readonly string _searchUrl = "https://www.imdb.com/find?q=";
+        private readonly ImdbConfiguration _imdbConfiguration;
 
-        public ImdbRepository(IHtmlUtils htmlUtils)
+        private readonly string titleUri = "title/";
+        // private readonly string _searchUri = "find?q=";
+
+        public ImdbRepository(IHtmlUtils htmlUtils, IDbConnection connection, IHttpClientFactory httpClientFactory,
+            IConfiguration configuration)
         {
             _htmlUtils = htmlUtils;
+            _connection = connection;
+            _client = httpClientFactory.CreateClient("imdb-client");
+            _imdbConfiguration = configuration.GetSection("IMDB").Get<ImdbConfiguration>();
         }
 
-        public async Task<List<Media>> Search(string title)
+        public async Task<IEnumerable<Media>> Search(string title)
         {
-            string url = $"{_searchUrl}{title}";
-            var htmlDoc = await _htmlUtils.GetHtmlDocAsync(url);
-            return _htmlUtils.GetMediaList(htmlDoc);
+            var res = await _client.GetAsync($"{title[0]}/{title}.json");
+            var results =
+                JsonSerializer.Deserialize<SearchResultsJson>(await res.Content.ReadAsStringAsync(),
+                    new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    });
+
+            var media = new List<Media>();
+            if (results.ResultList != null)
+                foreach (var result in results.ResultList)
+                    media.Add(new Media
+                    {
+                        ImdbId = result.Id,
+                        Title = result.Title,
+                        Url = $"{_imdbConfiguration.URI}{titleUri}{result.Id}",
+                        Year = result.Year,
+                        PosterPath = result.Poster?.ImageUrl ?? ""
+                    });
+
+            return media;
         }
 
         public async Task<Media> GetMedia(string url)
@@ -32,28 +64,12 @@ namespace Infrastructure.Repositories
             return _htmlUtils.GetMediaInfo(htmlDoc, url);
         }
 
-        public async Task<List<Media>> GetUserMedia(ulong userId, string connectionString)
+        public async Task<IEnumerable<Media>> GetUserMedia(IUser user)
         {
-            List<Media> media = new List<Media>();
-            string storedProcedure = "SP_GetUserMedia";
-            await using var sqlConnection =
-                new SqlConnection(connectionString + "discord_imdbot");
-            await using var sqlCommand = new SqlCommand(storedProcedure, sqlConnection)
-                {CommandType = CommandType.StoredProcedure};
-
-            sqlCommand.Parameters.Add(new SqlParameter("@UserId", SqlDbType.BigInt) {Value = userId});
-
-            await sqlConnection.OpenAsync();
-            await using SqlDataReader sqlReader = await sqlCommand.ExecuteReaderAsync();
-            while (sqlReader.Read())
-            {
-                media.Add(new Media
-                {
-                    Id = sqlReader.GetString(0), Title = sqlReader.GetString(1), PosterPath = sqlReader.GetString(2),
-                    Url = _imdbUrl + sqlReader.GetString(0)
-                });
-            }
-
+            var sqlQuery =
+                "SELECT * FROM media AS M INNER JOIN \"user\" AS U ON U.discord_id = @UserDiscordId INNER JOIN user_media as UM ON U.id = UM.user_id";
+            var media =
+                await _connection.QueryAsync<Media>(sqlQuery, new {UserDiscordId = (long) user.Id});
             return media;
         }
     }

@@ -1,13 +1,14 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
+using Discord;
 using Domain.Entities;
 
 namespace Application.Interfaces.Repositories
 {
     public interface IImdbRepository
     {
-        Task<List<Media>> Search(string title);
+        Task<IEnumerable<Media>> Search(string title);
         Task<Media> GetMedia(string url);
-        Task<List<Media>> GetUserMedia(ulong userId, string connectionString);
+        Task<IEnumerable<Media>> GetUserMedia(IUser user);
     }
 }

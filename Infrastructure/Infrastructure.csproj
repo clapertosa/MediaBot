@@ -5,21 +5,26 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Dapper" Version="2.0.90" />
+    <PackageReference Include="dbup-postgresql" Version="4.5.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="5.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="5.0.0" />
+    <PackageReference Include="Npgsql" Version="5.0.7" />
     <PackageReference Include="System.Data.SqlClient" Version="4.8.2" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="SQL\Queries\InitializeDB.sql">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    <None Update="Database\Scripts\Script0001 - Create Users Table.sql">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="SQL\StoredProcedures\AddMedia.sql">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    <None Update="Database\Scripts\Script0002 - Create Media Table.sql">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="SQL\StoredProcedures\GetUserMedia.sql">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    <None Update="Database\Scripts\Script0003 - User Media Junction Table.sql">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="SQL\StoredProcedures\RemoveMedia.sql">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    <None Update="Database\Scripts\Script0004 - User and Media Indexes.sql">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 

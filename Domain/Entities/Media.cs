@@ -1,11 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace Domain.Entities
 {
-    public class Media
+    public class Media : Base<int>
     {
-        public string Id { get; set; }
+        public string ImdbId { get; set; }
         public string Title { get; set; }
         public string Plot { get; set; }
         public string PosterPath { get; set; }
@@ -15,8 +14,8 @@ namespace Domain.Entities
         public double Vote { get; set; }
         public string Url { get; set; }
         public int Year { get; set; }
-        public List<Actor> Actors { get; set; } = new List<Actor>();
-        public List<string> Genres { get; set; } = new List<string>();
-        public List<string> MetaData { get; set; } = new List<string>();
+        public List<Actor> Actors { get; set; } = new();
+        public List<string> Genres { get; set; } = new();
+        public List<string> MetaData { get; set; } = new();
     }
 }

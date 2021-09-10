@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Data;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
@@ -9,28 +10,39 @@ using Discord.Commands;
 using Discord.WebSocket;
 using DiscordConsoleApp.Commands;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace DiscordConsoleApp.Services
 {
-    public partial class CommandHandler : InitializedService
+    public partial class CommandHandler : DiscordClientService
     {
-        private readonly IServiceProvider _provider;
         private readonly DiscordSocketClient _client;
-        private readonly CommandService _service;
         private readonly IConfiguration _config;
+        private readonly IDbConnection _connection;
         private readonly IImdbRepository _imdbRepository;
+        private readonly ILogger<CommandHandler> _logger;
+        private readonly IServiceProvider _provider;
+        private readonly CommandService _service;
 
-        public CommandHandler(IServiceProvider provider, DiscordSocketClient client, CommandService service,
-            IConfiguration config, IImdbRepository imdbRepository)
+        public CommandHandler(
+            IServiceProvider provider,
+            ILogger<CommandHandler> logger,
+            IConfiguration config,
+            IDbConnection connection,
+            DiscordSocketClient client,
+            CommandService service,
+            IImdbRepository imdbRepository) : base(client, logger)
         {
             _provider = provider;
+            _logger = logger;
+            _connection = connection;
             _client = client;
             _service = service;
             _config = config;
             _imdbRepository = imdbRepository;
         }
 
-        public override async Task InitializeAsync(CancellationToken cancellationToken)
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             _client.MessageReceived += OnMessageReceived;
             _client.ReactionAdded += OnReactionAdded;
@@ -42,15 +54,14 @@ namespace DiscordConsoleApp.Services
 
         private async Task OnMessageReceived(SocketMessage arg)
         {
-            if (!(arg is SocketUserMessage message)) return;
-            if (message.Source != MessageSource.User) return;
+            if (arg is not SocketUserMessage {Source: MessageSource.User} message) return;
 
             var argPos = 0;
             if (!message.HasStringPrefix(_config["prefix"], ref argPos) &&
                 !message.HasMentionPrefix(_client.CurrentUser, ref argPos)) return;
 
             var context = new SocketCommandContext(_client, message);
-            int pos = 0;
+            var pos = 0;
             if (message.HasStringPrefix(_config["prefix"], ref pos) ||
                 message.HasMentionPrefix(_client.CurrentUser, ref pos))
             {
@@ -59,10 +70,7 @@ namespace DiscordConsoleApp.Services
                 if (!result.IsSuccess)
                 {
                     var reason = result.Error;
-                    if (arg.Content.Contains("imdb"))
-                    {
-                        await context.Channel.SendMessageAsync($"Error: \n{reason}");
-                    }
+                    if (arg.Content.Contains("imdb")) await context.Channel.SendMessageAsync($"Error: \n{reason}");
                 }
             }
         }
@@ -79,13 +87,13 @@ namespace DiscordConsoleApp.Services
             switch (emoteSocket.Emote.Name)
             {
                 case EmojiUnicode.Confirm:
-                    EmbedBuilder embedBuilder = await SendMedia(msg);
+                    var embedBuilder = await SendMedia(msg);
                     var mediaMsg = await channelSocket.SendMessageAsync(embed: embedBuilder.Build());
                     await mediaMsg.AddReactionAsync(new Emoji(EmojiUnicode.Heart));
                     break;
                 case EmojiUnicode.Heart:
-                    SocketUser user = _client.GetUser(emoteSocket.UserId);
-                    string answer = await SaveMedia(msg, user);
+                    var user = _client.GetUser(emoteSocket.UserId);
+                    var answer = await SaveMedia(msg, user);
                     await channelSocket.SendMessageAsync(answer);
                     break;
                 default: return;
@@ -100,15 +108,16 @@ namespace DiscordConsoleApp.Services
             switch (emoteSocket.Emote.Name)
             {
                 case EmojiUnicode.Heart:
-                    SocketUser user = _client.GetUser(emoteSocket.UserId);
-                    string answer = await RemoveMedia(msg, user);
+                    var user = _client.GetUser(emoteSocket.UserId);
+                    var answer = await RemoveMedia(msg, user);
                     await channelSocket.SendMessageAsync(answer);
                     break;
                 default: return;
             }
         }
 
-        private async Task OnCommandExecuted(Optional<CommandInfo> command, ICommandContext context, IResult result)
+        private static async Task OnCommandExecuted(Optional<CommandInfo> command, ICommandContext context,
+            IResult result)
         {
             if (command.IsSpecified && !result.IsSuccess) await context.Channel.SendMessageAsync($"Error: {result}");
         }
