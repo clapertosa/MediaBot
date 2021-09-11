@@ -20,7 +20,6 @@ namespace DiscordConsoleApp.Services
         private readonly IConfiguration _config;
         private readonly IDbConnection _connection;
         private readonly IImdbRepository _imdbRepository;
-        private readonly ILogger<CommandHandler> _logger;
         private readonly IServiceProvider _provider;
         private readonly CommandService _service;
 
@@ -34,7 +33,6 @@ namespace DiscordConsoleApp.Services
             IImdbRepository imdbRepository) : base(client, logger)
         {
             _provider = provider;
-            _logger = logger;
             _connection = connection;
             _client = client;
             _service = service;

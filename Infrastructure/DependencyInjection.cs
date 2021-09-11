@@ -27,6 +27,7 @@ namespace Infrastructure
             );
 
             // Http Client
+            
             services.AddHttpClient("imdb-client",
                 client =>
                 {

@@ -4,7 +4,7 @@
   "Token": "Token",
   "IMDB": {
     "URI": "https://www.imdb.com/",
-    "SearchAPI": "Search_API",
+    "SearchAPI": "SearchAPI",
     "GraphQLEndpoint": "GraphQLEndpoint"
   }
 }

@@ -10,5 +10,7 @@ namespace Application.Interfaces.Repositories
         Task<IEnumerable<Media>> Search(string title);
         Task<Media> GetMedia(string url);
         Task<IEnumerable<Media>> GetUserMedia(IUser user);
+        Task UpdateUser(User oldUser, IUser newUser);
+        Task UpdateMedia(Media media, IEmbed embed);
     }
 }

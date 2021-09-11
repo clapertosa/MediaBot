@@ -75,6 +75,10 @@ namespace DiscordConsoleApp.Services
                     }
                 );
             }
+            else
+            {
+                await _imdbRepository.UpdateUser(userRecord, user);
+            }
 
             // Check if media exists
             var mediaRecord = await GetMedia(embed);
@@ -82,14 +86,18 @@ namespace DiscordConsoleApp.Services
             if (mediaRecord == null)
             {
                 var sqlInsertMediaQuery =
-                    "INSERT INTO media(imdb_id, title, poster_path) VALUES(@MediaId, @Title, @PosterPath) RETURNING *";
+                    "INSERT INTO media(imdb_id, title, poster_path, url) VALUES(@MediaId, @Title, @PosterPath, @Url) RETURNING *";
                 mediaRecord = await _connection.QueryFirstAsync<Media>(sqlInsertMediaQuery, new
                 {
-                    MediaId = embed?.Url.Substring(
-                        embed.Url.LastIndexOf("/", StringComparison.Ordinal) + 1),
+                    MediaId = embed?.Url.Substring(embed.Url.LastIndexOf("/", StringComparison.Ordinal) + 1),
                     embed?.Title,
-                    PosterPath = embed?.Thumbnail.Value.Url ?? embed?.Image.Value.Url ?? ""
+                    PosterPath = embed?.Thumbnail.Value.Url ?? embed?.Image.Value.Url ?? "",
+                    embed?.Url
                 });
+            }
+            else
+            {
+                await _imdbRepository.UpdateMedia(mediaRecord, embed);
             }
 
             // Check if user already has media

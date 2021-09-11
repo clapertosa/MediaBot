@@ -31,7 +31,7 @@ namespace DiscordConsoleApp
                 {
                     x.AddConsole();
                     x.SetMinimumLevel(LogLevel
-                        .Debug); // Defines what kind of information should be logged (e.g. Debug, Information, Warning, Critical) adjust this to your liking
+                        .Information); // Defines what kind of information should be logged (e.g. Debug, Information, Warning, Critical) adjust this to your liking
                 }).ConfigureDiscordHost((context, config) =>
                 {
                     InitializeDatabase.Run(context.Configuration);

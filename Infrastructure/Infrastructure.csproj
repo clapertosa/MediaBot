@@ -26,6 +26,9 @@
     <None Update="Database\Scripts\Script0004 - User and Media Indexes.sql">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="Database\Scripts\Script0005 - Alter Media Table.sql">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <PropertyGroup>

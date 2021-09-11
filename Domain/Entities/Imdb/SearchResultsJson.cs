@@ -15,6 +15,7 @@ namespace Domain.Entities.Imdb
             public long Rank { get; set; }
             [JsonPropertyName("s")] public string Stars { get; set; }
             [JsonPropertyName("y")] public int Year { get; set; }
+            [JsonPropertyName("q")] public string Type { get; set; }
             [JsonPropertyName("i")] public PosterJson Poster { get; set; }
         }
 

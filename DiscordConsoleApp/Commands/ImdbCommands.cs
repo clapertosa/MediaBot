@@ -34,7 +34,7 @@ namespace DiscordConsoleApp.Commands
             {
                 var embedded = new EmbedBuilder();
                 await ReplyAsync("Please select one:");
-                var limit = media.Count > 3 ? 3 : media.Count;
+                var limit = media.Count > 5 ? 5 : media.Count;
                 for (short i = 0; i < limit; i++)
                 {
                     embedded.Title = media[i].Title;
