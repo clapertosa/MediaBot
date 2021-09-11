@@ -19,9 +19,8 @@ namespace DiscordConsoleApp.Commands
         [Alias(CommandType.Help)]
         public async Task CommandsList()
         {
-            await ReplyAsync($"{Context.User.Mention} Here's commands list");
-            await ReplyAsync($"!{CommandType.Search}");
-            await ReplyAsync($"!{CommandType.GetUserMedia}");
+            await ReplyAsync(
+                $"{Context.User.Mention} Here's commands list:\n{string.Join("\n", CommandType.GetCommands())}");
         }
 
         [Command(CommandType.Search)]
